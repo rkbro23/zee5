@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ZEE5 Live TV | Elite Player</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #ffd700;
+            --primary-dark: #ff6b00;
+            --bg: #0a0e1a;
+            --surface: #111527;
+            --glass: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-sec: #8892b0;
+            --logo-shadow: rgba(255, 215, 0, 0.4);
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.9);
+            --live-bg: rgba(0,0,0,0.6);
+            --card-poster-bg: #0a0e1a;
+        }
+
+        body.light-mode {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-sec: #64748b;
+            --border: rgba(0, 0, 0, 0.1);
+            --glass: rgba(0, 0, 0, 0.05);
+            --logo-shadow: rgba(0, 0, 0, 0.2);
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            --live-bg: #ffffff;
+            --card-poster-bg: #ffffff;
+        }
+
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body { background-color: var(--bg); color: var(--text-main); overflow-x: hidden; transition: 0.3s ease; }
+
+        header {
+            position: sticky; top: 0; z-index: 1000; background: var(--bg);
+            backdrop-filter: blur(25px); padding: 0 5%; display: flex;
+            justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255, 215, 0, 0.15);
+            height: 70px;
+        }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .brand { font-size: 1.6rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .brand i { color: var(--primary); filter: drop-shadow(0 2px 8px var(--logo-shadow)); }
+        .brand span { 
+            background: linear-gradient(90deg, #ffd700, #ff6b00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 2px 6px var(--logo-shadow));
+        }
+
+        .hamburger { cursor: pointer; display: flex; align-items: center; padding: 8px; border-radius: 10px; transition: 0.2s; }
+        .hamburger:hover { background: var(--glass); }
+
+        .header-center-search {
+            flex: 0 1 450px; background: var(--glass); border: 1px solid var(--border); 
+            padding: 8px 18px; border-radius: 50px; display: flex; align-items: center; gap: 10px;
+        }
+        .header-center-search input { background: transparent; border: none; color: var(--text-main); outline: none; width: 100%; font-size: 0.95rem; }
+
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .icon-btn { background: var(--glass); border: 1px solid var(--border); color: var(--text-main); padding: 10px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .search-icon-mobile { display: none; }
+
+        #search-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: none; align-items: center; padding: 0 5%; z-index: 1100; gap: 15px; }
+        #search-overlay input { flex: 1; background: transparent; border: none; color: var(--text-main); font-size: 1.1rem; outline: none; }
+
+        @media (max-width: 768px) { .header-center-search { display: none; } .search-icon-mobile { display: flex; } }
+
+        #sidebar { position: fixed; top: 0; left: -320px; width: 320px; height: 100%; background: var(--surface); z-index: 5500; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); border-right: 1px solid var(--border); padding: 40px 25px; }
+        #sidebar.open { left: 0; }
+        .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 5400; display: none; backdrop-filter: blur(4px); }
+        .about-box { background: var(--bg); padding: 22px; border-radius: 20px; border: 1px solid var(--border); margin-top: 20px; }
+        .about-text { font-size: 14px; line-height: 1.7; color: var(--text-sec); margin-bottom: 24px; }
+        .features { display: flex; flex-direction: column; gap: 14px; }
+        .feature-item { display: flex; align-items: center; gap: 14px; color: var(--text-main); font-size: 15px; font-weight: 500; }
+        .feature-item i { width: 20px; height: 20px; color: var(--primary); }
+        .dev-tag { margin-top: 20px; font-weight: 800; font-size: 0.9rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+
+        .cat-nav { position: sticky; top: 70px; z-index: 900; background: var(--bg); padding: 12px 0; border-bottom: 1px solid var(--border); display: none; }
+        .categories { display: flex; gap: 12px; overflow-x: auto; padding: 0 5%; }
+        .chip { padding: 10px 22px; background: var(--surface); border: 1px solid var(--border); border-radius: 50px; cursor: pointer; white-space: nowrap; font-size: 0.8rem; font-weight: 700; color: var(--text-sec); transition: 0.3s; }
+        .chip.active { background: linear-gradient(90deg, #ffd700, #ff6b00); color: #000; border: none; }
+
+        .grid { display: grid; padding: 1rem 5% 40px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
+        .card { 
+            background: var(--surface); border-radius: 16px; border: 1px solid var(--border); 
+            overflow: hidden; cursor: pointer; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            position: relative; box-shadow: var(--card-shadow);
+        }
+        .card:hover { transform: translateY(-8px) scale(1.03); border: 2px solid var(--primary); box-shadow: 0 0 30px rgba(255, 215, 0, 0.15); }
+        .card .poster-box { width: 100%; aspect-ratio: 16/9; background: var(--card-poster-bg); padding: 15px; display: flex; align-items: center; justify-content: center; }
+        .card img { max-width: 90%; max-height: 90%; object-fit: contain; pointer-events: none; border-radius: 4px; }
+        
+        .live-tag { 
+            position: absolute; top: 10px; left: 10px; background: #ff0033; 
+            padding: 3px 10px; border-radius: 50px; display: flex; align-items: center; gap: 5px; 
+            font-size: 0.55rem; font-weight: 800; color: #fff; text-transform: uppercase;
+            animation: blink 1.5s infinite; box-shadow: 0 0 20px rgba(255, 0, 51, 0.3);
+        }
+        .dot { width: 6px; height: 6px; background: #ff0033; border-radius: 50%; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .card-info { padding: 12px 14px; text-align: center; }
+        .card-info h3 { font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        #player-overlay { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; overflow-y: auto; }
+        .video-wrapper { width: 100%; height: 68vh; background: #000; position: relative; flex-shrink: 0; }
+        @media (max-width: 768px) { .video-wrapper { height: 40vh; } }
+        
+        video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+        .controls-wrapper { 
+            position: absolute; inset: 0; display: flex; flex-direction: column; 
+            justify-content: space-between; transition: 0.4s; opacity: 0; 
+            background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.9) 100%);
+            z-index: 20;
+        }
+        .video-wrapper.show-controls .controls-wrapper { opacity: 1; }
+
+        .center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: none; border: none; cursor: pointer; transition: 0.3s; z-index: 25; }
+        .center-btn:hover { transform: translate(-50%, -50%) scale(1.2); }
+
+        .p-header { padding: 20px; display: flex; align-items: center; gap: 15px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
+        .p-back-circle { width: 42px; height: 42px; border-radius: 50%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); }
+        .p-red-pipe { width: 4px; height: 28px; background: var(--primary); border-radius: 2px; }
+        .p-name { font-weight: 800; font-size: 1.4rem; color: #fff; text-shadow: 0 2px 10px #000; }
+        @media (max-width: 768px) { .p-name { font-size: 0.95rem; } }
+
+        .p-bottom { padding: 25px 30px 40px; background: linear-gradient(to top, rgba(0,0,0,1), transparent); }
+        
+        .progress-area { width: 100%; height: 6px; background: rgba(255,255,255,0.2); border-radius: 10px; margin-bottom: 20px; cursor: pointer; position: relative; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #ffd700, #ff6b00); width: 0%; border-radius: 10px; transition: 0.1s linear; pointer-events: none; }
+        
+        .p-controls-row { display: flex; justify-content: space-between; align-items: center; color: #fff; }
+        .p-live-indicator { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 0.9rem; color: white; margin-left: 10px; }
+
+        /* Enhanced Quality Menu */
+        .quality-menu { 
+            position: absolute; 
+            bottom: 100px; 
+            right: 20px; 
+            background: rgba(13, 17, 23, 0.95); 
+            border: 1px solid var(--border); 
+            border-radius: 16px; 
+            overflow: hidden; 
+            display: none; 
+            min-width: 200px; 
+            z-index: 30; 
+            padding: 8px 0;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+        }
+        .quality-menu.show { display: block; }
+        
+        .q-title { 
+            padding: 10px 20px 6px; 
+            font-size: 0.65rem; 
+            font-weight: 800; 
+            color: var(--text-sec); 
+            text-transform: uppercase; 
+            letter-spacing: 1.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 4px;
+        }
+        .q-item { 
+            padding: 12px 20px; 
+            font-size: 0.85rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            color: #e2e8f0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .q-item:hover { background: rgba(255,255,255,0.08); }
+        .q-item.active { 
+            background: linear-gradient(90deg, rgba(255, 215, 0, 0.2), rgba(255, 107, 0, 0.1)); 
+            color: #ffd700;
+        }
+        .q-item .check {
+            opacity: 0;
+            transition: 0.2s;
+        }
+        .q-item.active .check {
+            opacity: 1;
+        }
+        .q-item .q-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .q-item .q-resolution {
+            font-size: 0.7rem;
+            color: var(--text-sec);
+            font-weight: 400;
+        }
+        .q-item.active .q-resolution {
+            color: #ffd700;
+        }
+
+        .player-content-scroll { flex-grow: 1; overflow-y: auto; background: var(--bg); padding: 30px 5%; }
+        .suggestion-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; color: var(--text-main); }
+        .sparkle-red { color: var(--primary); }
+
+        #loading-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 9000; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 20px; }
+        .loader-txt { font-weight: 800; font-size: 1.1rem; color: var(--primary); letter-spacing: 1px; }
+
+        .spinner { width: 45px; height: 45px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Current quality indicator */
+        .current-quality {
+            font-size: 0.65rem;
+            color: var(--text-sec);
+            background: rgba(255,255,255,0.06);
+            padding: 4px 12px;
+            border-radius: 50px;
+            border: 1px solid var(--border);
+            margin-left: 10px;
+            font-weight: 600;
+        }
+        .current-quality.active {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .quality-menu {
+                right: 10px;
+                bottom: 80px;
+                min-width: 170px;
+            }
+            .q-item {
+                padding: 10px 16px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body id="body-main">
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loader-txt">Loading ZEE5 Channels...</div>
+    </div>
+
+    <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar(false)"></div>
+
+    <div id="sidebar">
+        <div class="brand">
+            <i data-lucide="tv"></i>
+            <span>ZEE5 Live</span>
+        </div>
+        <div class="about-box">
+            <h2>Stream ZEE5 Live</h2>
+            <p class="about-text">
+                Watch your favorite ZEE5 live channels in high quality. 
+                Optimized for seamless streaming on mobile and desktop.
+            </p>
+            <div class="features">
+                <div class="feature-item">
+                    <i data-lucide="play-circle"></i>
+                    <span>HLS Streaming</span>
+                </div>
+                <div class="feature-item">
+                    <i data-lucide="layers"></i>
+                    <span>Category Filter</span>
+                </div>
+                <div class="feature-item">
+                    <i data-lucide="settings"></i>
+                    <span>Quality Selector</span>
+                </div>
+                <div class="feature-item">
+                    <i data-lucide="sun-moon"></i>
+                    <span>Light / Dark Theme</span>
+                </div>
+            </div>
+            <div class="dev-tag">
+                <i data-lucide="badge-check"></i>
+                <span>ZEE5 Live Player</span>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <div class="header-left">
+            <div class="hamburger" onclick="toggleSidebar(true)"><i data-lucide="menu"></i></div>
+            <div class="brand" onclick="location.reload()"><i data-lucide="tv"></i><span>ZEE5 Live</span></div>
+        </div>
+        <div class="header-center-search">
+            <i data-lucide="search" size="18" color="var(--text-sec)"></i>
+            <input type="text" id="laptop-search" placeholder="Search ZEE5 channels..." oninput="handleSearch(this)">
+        </div>
+        <div class="header-right">
+            <div class="icon-btn search-icon-mobile" onclick="toggleMobileSearch(true)"><i data-lucide="search" size="20"></i></div>
+            <div class="icon-btn" onclick="toggleTheme()"><i data-lucide="moon" id="theme-icon" size="20"></i></div>
+        </div>
+        <div id="search-overlay">
+            <i data-lucide="search" size="20"></i>
+            <input type="text" id="mobile-search-input" placeholder="Search..." oninput="handleSearch(this)">
+            <i data-lucide="x" size="24" style="cursor:pointer" onclick="toggleMobileSearch(false)"></i>
+        </div>
+    </header>
+
+    <div class="cat-nav" id="cat-nav-bar">
+        <div id="categories" class="categories"></div>
+    </div>
+    
+    <div id="channel-grid" class="grid"></div>
+
+    <div id="player-overlay">
+        <div class="video-wrapper" id="v-wrap">
+            <div id="video-loader" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:15;">
+                <div class="spinner"></div>
+            </div>
+            
+            <video id="video" playsinline=""></video>
+
+            <div class="controls-wrapper" id="video-controls">
+                <div class="p-header">
+                    <div class="p-back-circle" onclick="closePlayer()"><i data-lucide="arrow-left" color="white" size="24"></i></div>
+                    <div class="p-red-pipe"></div>
+                    <div class="p-name" id="p-name-txt">Loading Stream...</div>
+                    <span class="current-quality" id="current-quality-badge">Auto</span>
+                </div>
+                <div class="center-btn" onclick="togglePlay()"><i data-lucide="play" id="center-play-icon" color="white" size="45"></i></div>
+                <div class="p-bottom">
+                    <div class="progress-area" id="p-container"><div class="progress-bar" id="p-bar"></div></div>
+                    <div class="p-controls-row">
+                        <div style="display:flex; align-items:center; gap:15px;">
+                            <i data-lucide="play" id="play-btn" style="cursor:pointer" onclick="togglePlay()"></i>
+                            <i data-lucide="volume-2" id="mute-btn" style="cursor:pointer" onclick="toggleMute()"></i>
+                            <div class="p-live-indicator"><div class="dot"></div> LIVE</div>
+                            <span id="time-display" style="font-size: 0.7rem; font-weight:700; margin-left:8px;">00:00 / 00:00</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:20px;">
+                            <i data-lucide="settings" style="cursor:pointer" onclick="toggleSettings()"></i>
+                            <i data-lucide="maximize" style="cursor:pointer" onclick="toggleFullScreen()"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Quality Menu -->
+                <div class="quality-menu" id="quality-menu">
+                    <div class="q-title">Select Quality</div>
+                    <div class="q-item" data-level="-1" onclick="setQuality(-1)">
+                        <span class="q-label">Auto</span>
+                        <span class="check"><i data-lucide="check" size="16"></i></span>
+                    </div>
+                    <div class="q-item" data-level="0" onclick="setQuality(0)">
+                        <span class="q-label">1080p <span class="q-resolution">FHD</span></span>
+                        <span class="check"><i data-lucide="check" size="16"></i></span>
+                    </div>
+                    <div class="q-item" data-level="1" onclick="setQuality(1)">
+                        <span class="q-label">720p <span class="q-resolution">HD</span></span>
+                        <span class="check"><i data-lucide="check" size="16"></i></span>
+                    </div>
+                    <div class="q-item" data-level="2" onclick="setQuality(2)">
+                        <span class="q-label">480p <span class="q-resolution">SD</span></span>
+                        <span class="check"><i data-lucide="check" size="16"></i></span>
+                    </div>
+                    <div class="q-item" data-level="3" onclick="setQuality(3)">
+                        <span class="q-label">360p <span class="q-resolution">Low</span></span>
+                        <span class="check"><i data-lucide="check" size="16"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="player-content-scroll">
+            <h2 class="suggestion-title" id="s-title"></h2>
+            <div id="suggestion-grid" class="grid" style="padding: 0;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Only ZEE5 Live Playlist
+        const ZEE5_API = 'https://servertvhub.site/zee5/playlist.php';
+        
+        let hls = null, allChannels = [];
+        let currentQuality = -1; // -1 = Auto
+        let qualityLevels = [];
+        let isQualityMenuOpen = false;
+        
+        const video = document.getElementById('video');
+        const vWrap = document.getElementById('v-wrap');
+
+        lucide.createIcons();
+
+        function toggleSidebar(s) { 
+            document.getElementById('sidebar').classList.toggle('open', s); 
+            document.getElementById('overlay').style.display = s ? 'block' : 'none'; 
+        }
+        
+        function toggleMobileSearch(s) { 
+            document.getElementById('search-overlay').style.display = s ? 'flex' : 'none'; 
+            if(s) document.getElementById('mobile-search-input').focus(); 
+        }
+
+        function showControls() { 
+            vWrap.classList.add('show-controls'); 
+            clearTimeout(window.controlTimer); 
+            window.controlTimer = setTimeout(() => { 
+                if (!video.paused) vWrap.classList.remove('show-controls'); 
+            }, 3000); 
+        }
+        if(vWrap) {
+            vWrap.addEventListener('mousemove', showControls);
+            vWrap.addEventListener('touchstart', showControls);
+        }
+
+        // Load ZEE5 channels on startup
+        window.onload = () => {
+            document.getElementById('loading-overlay').style.display = 'flex';
+            loadZEE5Channels();
+        };
+
+        async function loadZEE5Channels() {
+            try {
+                const response = await fetch(ZEE5_API);
+                if (!response.ok) throw new Error('Network error');
+                const data = await response.json();
+                
+                let channels = [];
+                if (Array.isArray(data)) {
+                    channels = data.filter(item => item && (item.title || item.name)).map(item => ({
+                        name: item.title || item.name || 'ZEE5 Channel',
+                        group: item.group || 'ZEE5',
+                        logo: item.image_url || item.logo || 'https://img.icons8.com/fluency/96/monitor.png',
+                        url: item.video_token || item.link || item.url || '#'
+                    }));
+                }
+                
+                if (channels.length === 0) {
+                    document.getElementById('channel-grid').innerHTML = `
+                        <div style="text-align:center; padding:60px 20px; color: var(--text-sec); grid-column: 1/-1;">
+                            <i data-lucide="alert-circle" size="48" style="display:block; margin:0 auto 15px; color: var(--primary);"></i>
+                            <h3 style="color: var(--text-main);">No channels available</h3>
+                            <p>Please try again later.</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    return;
+                }
+                
+                allChannels = channels;
+                document.getElementById('cat-nav-bar').style.display = 'block';
+                renderCategories();
+                renderGrid(allChannels, 'channel-grid');
+                document.getElementById('loading-overlay').style.display = 'none';
+                
+            } catch (e) { 
+                console.error("Error loading ZEE5 channels:", e);
+                document.getElementById('channel-grid').innerHTML = `
+                    <div style="text-align:center; padding:60px 20px; color: var(--text-sec); grid-column: 1/-1;">
+                        <i data-lucide="alert-circle" size="48" style="display:block; margin:0 auto 15px; color: #ff0033;"></i>
+                        <h3 style="color: var(--text-main);">Failed to load channels</h3>
+                        <p>Please check your connection and try again.</p>
+                        <button onclick="location.reload()" style="margin-top:20px; padding:12px 30px; background: linear-gradient(90deg, #ffd700, #ff6b00); border: none; border-radius: 50px; color: #000; font-weight: 700; font-size: 14px; cursor: pointer;">Retry</button>
+                    </div>
+                `;
+                lucide.createIcons();
+                document.getElementById('loading-overlay').style.display = 'none';
+            }
+        }
+
+        function renderGrid(list, target, isMini = false) {
+            const grid = document.getElementById(target);
+            if(!grid) return;
+            if (list.length === 0) {
+                grid.innerHTML = `<div style="text-align:center; padding:40px; color: var(--text-sec); grid-column: 1/-1;">No channels found</div>`;
+                return;
+            }
+            grid.innerHTML = list.slice(0, isMini ? 12 : 400).map(ch => `
+                <div class="card" onclick="playStream('${ch.url.replace(/'/g, "\\'")}', '${ch.name.replace(/'/g, "\\'")}', '${ch.group.replace(/'/g, "\\'")}')">
+                    <div class="live-tag">● LIVE</div>
+                    <div class="poster-box"><img src="${ch.logo}" onerror="this.src='https://img.icons8.com/fluency/96/monitor.png'"></div>
+                    <div class="card-info"><h3>${ch.name.substring(0, 40)}</h3></div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderCategories() {
+            const cats = ['All', ...new Set(allChannels.map(c => c.group))];
+            
+            let html = cats.map(cat => `<div class="chip ${cat === 'All' ? 'active' : ''}" onclick="filterCat(this, '${cat.replace(/'/g, "\\'")}')">${cat.substring(0,20)}</div>`).join('');
+            
+            document.getElementById('categories').innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function filterCat(el, cat) {
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            renderGrid(cat === 'All' ? allChannels : allChannels.filter(c => c.group === cat), 'channel-grid');
+        }
+
+        function isDirectStream(url) {
+            if (!url) return false;
+            const clean = url.toLowerCase().split('?')[0];
+            return clean.endsWith('.m3u8') || clean.endsWith('.mp4') || clean.endsWith('.mkv') || 
+                   clean.includes('/m3u8') || clean.includes('.m3u8?') || clean.includes('manifest.m3u8') ||
+                   clean.includes('.ts') || clean.includes('playlist') || clean.includes('index.m3u8');
+        }
+
+        // ========== QUALITY SELECTOR FUNCTIONS ==========
+        
+        function toggleSettings() {
+            const menu = document.getElementById('quality-menu');
+            isQualityMenuOpen = !isQualityMenuOpen;
+            menu.classList.toggle('show', isQualityMenuOpen);
+            if (isQualityMenuOpen && hls) {
+                updateQualityMenu();
+            }
+        }
+
+        function updateQualityMenu() {
+            if (!hls || !hls.levels || hls.levels.length === 0) {
+                // If no levels available, show only Auto
+                document.querySelectorAll('.q-item').forEach(item => {
+                    const level = parseInt(item.dataset.level);
+                    if (level === -1) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+                updateQualityUI(-1);
+                return;
+            }
+
+            // Get available levels from HLS
+            const levels = hls.levels;
+            const sortedLevels = levels.map((l, i) => ({...l, index: i}))
+                .sort((a, b) => (b.height || 0) - (a.height || 0));
+
+            // Show all quality items
+            document.querySelectorAll('.q-item').forEach(item => {
+                const level = parseInt(item.dataset.level);
+                if (level === -1) {
+                    item.style.display = 'flex';
+                    return;
+                }
+                // Check if this level exists
+                const exists = sortedLevels.some(l => l.index === level);
+                item.style.display = exists ? 'flex' : 'none';
+                
+                // Update label with actual resolution
+                if (exists) {
+                    const lvl = sortedLevels.find(l => l.index === level);
+                    const labelEl = item.querySelector('.q-label');
+                    if (lvl && lvl.height) {
+                        let res = lvl.height >= 1080 ? '1080p' : 
+                                 lvl.height >= 720 ? '720p' : 
+                                 lvl.height >= 480 ? '480p' : 
+                                 lvl.height >= 360 ? '360p' : lvl.height + 'p';
+                        labelEl.innerHTML = `${res} <span class="q-resolution">${lvl.height >= 1080 ? 'FHD' : lvl.height >= 720 ? 'HD' : lvl.height >= 480 ? 'SD' : 'Low'}</span>`;
+                    }
+                }
+            });
+
+            // Update active state
+            const currentLevel = hls.currentLevel;
+            updateQualityUI(currentLevel);
+        }
+
+        function updateQualityUI(level) {
+            document.querySelectorAll('.q-item').forEach(item => {
+                const itemLevel = parseInt(item.dataset.level);
+                item.classList.toggle('active', itemLevel === level);
+            });
+
+            // Update badge
+            const badge = document.getElementById('current-quality-badge');
+            if (level === -1) {
+                badge.textContent = 'Auto';
+                badge.className = 'current-quality';
+            } else if (hls && hls.levels && hls.levels[level]) {
+                const lvl = hls.levels[level];
+                let label = lvl.height >= 1080 ? '1080p' : 
+                           lvl.height >= 720 ? '720p' : 
+                           lvl.height >= 480 ? '480p' : 
+                           lvl.height >= 360 ? '360p' : lvl.height + 'p';
+                badge.textContent = label;
+                badge.className = 'current-quality active';
+            } else {
+                badge.textContent = 'Auto';
+                badge.className = 'current-quality';
+            }
+        }
+
+        function setQuality(level) {
+            if (!hls) return;
+            
+            try {
+                if (level === -1) {
+                    // Auto quality
+                    hls.currentLevel = -1;
+                } else if (hls.levels && hls.levels[level]) {
+                    hls.currentLevel = level;
+                } else {
+                    // Try to find closest available level
+                    const availableLevels = hls.levels.map((_, i) => i);
+                    if (availableLevels.length > 0) {
+                        // Find closest level
+                        let closest = availableLevels.reduce((a, b) => {
+                            return Math.abs(a - level) < Math.abs(b - level) ? a : b;
+                        });
+                        hls.currentLevel = closest;
+                        level = closest;
+                    } else {
+                        hls.currentLevel = -1;
+                        level = -1;
+                    }
+                }
+                
+                currentQuality = level;
+                updateQualityUI(level);
+                
+                // Close menu after selection
+                document.getElementById('quality-menu').classList.remove('show');
+                isQualityMenuOpen = false;
+                
+            } catch (e) {
+                console.error("Quality selection error:", e);
+            }
+        }
+
+        // ========== PLAY STREAM ==========
+
+        function playStream(url, name, group) {
+            if(!url || url === '#') {
+                alert("Stream URL not available for this channel.");
+                return;
+            }
+            
+            // Close any existing player
+            if (hls) { hls.destroy(); hls = null; }
+            
+            document.getElementById('player-overlay').style.display = 'flex';
+            document.getElementById('video-loader').style.display = 'flex';
+            video.style.display = 'block';
+            document.getElementById('video-controls').style.display = 'flex';
+            document.getElementById('p-name-txt').innerText = name;
+            
+            // Reset quality badge
+            document.getElementById('current-quality-badge').textContent = 'Auto';
+            document.getElementById('current-quality-badge').className = 'current-quality';
+            currentQuality = -1;
+
+            const streamUrl = url;
+            
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    maxBufferLength: 30,
+                    maxMaxBufferLength: 600,
+                    enableWebVTT: true,
+                });
+                
+                hls.loadSource(streamUrl);
+                hls.attachMedia(video);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, () => { 
+                    video.play().catch(e => console.log("autoplay blocked:", e));
+                    
+                    // Setup quality levels
+                    if (hls.levels && hls.levels.length > 0) {
+                        qualityLevels = hls.levels.map((l, i) => i);
+                        // Auto quality by default
+                        hls.currentLevel = -1;
+                        updateQualityMenu();
+                    }
+                    
+                    document.getElementById('video-loader').style.display = 'none';
+                });
+                
+                hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+                    // Update quality UI when level changes
+                    const level = data.level;
+                    updateQualityUI(level);
+                });
+                
+                hls.on(Hls.Events.ERROR, (evt, data) => {
+                    console.error("HLS Error:", data);
+                    if (data.fatal) {
+                        document.getElementById('video-loader').style.display = 'none';
+                        // Try native playback as fallback
+                        video.src = streamUrl;
+                        video.play().catch(e => {
+                            console.error("Native playback failed:", e);
+                        });
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = streamUrl;
+                video.play().catch(e => console.log("play err:", e));
+                document.getElementById('video-loader').style.display = 'none';
+            } else {
+                video.src = streamUrl;
+                video.play().catch(e => {
+                    console.error("Playback failed:", e);
+                    document.getElementById('video-loader').style.display = 'none';
+                    alert("This channel cannot be played on your device.");
+                });
+                document.getElementById('video-loader').style.display = 'none';
+            }
+
+            document.getElementById('s-title').innerHTML = `<i data-lucide="sparkles" class="sparkle-red"></i> Similar in ${group}`;
+            renderGrid(allChannels.filter(c => c.group === group && c.name !== name), 'suggestion-grid', true);
+            lucide.createIcons();
+            
+            const scrollDiv = document.querySelector('.player-content-scroll');
+            if(scrollDiv) scrollDiv.scrollTo(0,0);
+            showControls();
+        }
+
+        const progContainer = document.getElementById('p-container');
+        if(progContainer) {
+            progContainer.addEventListener('click', function(e) {
+                if (video.duration && isFinite(video.duration)) {
+                    const rect = this.getBoundingClientRect();
+                    const offsetX = e.clientX - rect.left;
+                    const percent = offsetX / rect.width;
+                    video.currentTime = percent * video.duration;
+                }
+            });
+        }
+
+        video.addEventListener('timeupdate', () => {
+            const pBar = document.getElementById('p-bar');
+            const timeDisplay = document.getElementById('time-display');
+            if (video.duration && isFinite(video.duration) && video.duration > 0) {
+                const progress = (video.currentTime / video.duration) * 100;
+                pBar.style.width = Math.min(progress, 100) + '%';
+                timeDisplay.innerText = formatTime(video.currentTime) + " / " + formatTime(video.duration);
+            } else { 
+                if(timeDisplay) timeDisplay.innerText = "LIVE"; 
+                if(pBar) pBar.style.width = '100%'; 
+            }
+        });
+
+        function formatTime(s) { 
+            if (!s || !isFinite(s)) return "00:00";
+            let m = Math.floor(s / 60); 
+            let sec = Math.floor(s % 60); 
+            return (m < 10 ? '0'+m : m) + ":" + (sec < 10 ? '0'+sec : sec); 
+        }
+
+        video.onplaying = () => { 
+            const loaderDiv = document.getElementById('video-loader');
+            if(loaderDiv) loaderDiv.style.display = 'none'; 
+            const centerIcon = document.getElementById('center-play-icon');
+            const playBtnIcon = document.getElementById('play-btn');
+            if(centerIcon) centerIcon.setAttribute('data-lucide', 'pause');
+            if(playBtnIcon) playBtnIcon.setAttribute('data-lucide', 'pause');
+            lucide.createIcons(); 
+        };
+
+        function togglePlay() { 
+            if(video.paused) { 
+                video.play().catch(e => console.log("play err"));
+            } else { 
+                video.pause(); 
+            }
+            const icon = video.paused ? 'play' : 'pause'; 
+            const playBtn = document.getElementById('play-btn');
+            const centerBtn = document.getElementById('center-play-icon');
+            if(playBtn) playBtn.setAttribute('data-lucide', icon);
+            if(centerBtn) centerBtn.setAttribute('data-lucide', icon);
+            lucide.createIcons(); 
+        }
+
+        function toggleMute() { 
+            video.muted = !video.muted; 
+            const muteBtn = document.getElementById('mute-btn');
+            if(muteBtn) muteBtn.setAttribute('data-lucide', video.muted ? 'volume-x' : 'volume-2'); 
+            lucide.createIcons(); 
+        }
+
+        function toggleFullScreen() { 
+            if (!document.fullscreenElement && vWrap) vWrap.requestFullscreen(); 
+            else document.exitFullscreen(); 
+        }
+
+        function closePlayer() { 
+            if(video) { video.pause(); video.src = ''; video.load(); }
+            if(hls) { hls.destroy(); hls = null; }
+            document.getElementById('player-overlay').style.display = 'none'; 
+            document.getElementById('quality-menu').classList.remove('show');
+            isQualityMenuOpen = false;
+        }
+
+        function handleSearch(inputEl) { 
+            const query = inputEl.value.trim().toLowerCase();
+            if (query === '') {
+                if (allChannels.length > 0) {
+                    renderGrid(allChannels, 'channel-grid');
+                }
+            } else {
+                if (allChannels.length > 0) {
+                    document.getElementById('cat-nav-bar').style.display = 'block';
+                    renderGrid(allChannels.filter(c => c.name.toLowerCase().includes(query)), 'channel-grid'); 
+                }
+            }
+        }
+
+        function toggleTheme() { 
+            document.body.classList.toggle('light-mode'); 
+            const icon = document.getElementById('theme-icon'); 
+            if(icon) icon.setAttribute('data-lucide', document.body.classList.contains('light-mode') ? 'sun' : 'moon'); 
+            lucide.createIcons(); 
+        }
+
+        window.addEventListener('keydown', (e) => { 
+            if (document.getElementById('player-overlay').style.display === 'flex') { 
+                if (e.key.toLowerCase() === 'f') toggleFullScreen(); 
+                if (e.code === 'Space') { 
+                    e.preventDefault(); 
+                    togglePlay(); 
+                } 
+                if (e.key === 'Escape') closePlayer();
+                if (e.key === 'q' || e.key === 'Q') toggleSettings();
+            } 
+        });
+
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+    </script>
+</body>
+</html>
